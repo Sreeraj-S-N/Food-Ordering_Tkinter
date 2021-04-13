@@ -2,6 +2,8 @@ try:
     import Tkinter as tk
 except:
     import tkinter as tk
+import sqlite3 as lite
+from tkinter import messagebox as msgbox
 
 
 class SampleApp(tk.Tk):
@@ -16,13 +18,19 @@ class SampleApp(tk.Tk):
             self._frame.destroy()
         self._frame = new_frame
         self._frame.pack()
+def connection():
+        con = lite.connect('user.db')
+        with con:
+                cur = con.cursor()
+                cur.execute("CREATE TABLE IF NOT EXISTS user(Name TEXT,Addr TEXT,Phone INT,Username TEXT,Pass TEXT)")
+                con.commit()
 
 
+connection()
 class LoginPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
-        tk.Label(self, text="Start page", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
-        tk.Label(self, text="Login").pack()
+        tk.Label(self, text="Login page", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
         tk.Label(self, text="").pack()
         tk.Label(self, text="Username").pack()
         username_entry = tk.Entry(self, textvariable="username")
@@ -32,19 +40,32 @@ class LoginPage(tk.Frame):
         pwd_entry = tk.Entry(self, textvariable="password", show='*')
         pwd_entry.pack()
         tk.Label(self, text="").pack()
-        # tk.Button(self, text="Login", width=10, height=1).place(x=60, y=160)
-        # tk.Button(self, text="Register", width=10, height=1).place(x=180, y=160)
+        def log():
+            user = username_entry.get()
+            upass = pwd_entry.get()
+            conn = lite.connect('user.db')
+            cursor = conn.execute("SELECT Pass from user WHERE Username = '" + user + "';")
+            conn.commit()
+            for row in cursor:
+                    if upass==row[0]:
+                        msgbox.showinfo("SUCCESS","Login Successfull")
+                        conn.close()
+                        master.switch_frame(FoodDetails)
+            conn.close()           
+            msgbox.showinfo("ERROR","Incorrect Credentials")
+            
+            
+        tk.Button(self, text="Login",
+                  command=lambda: log()).pack()
         tk.Button(self, text="Register",
                   command=lambda: master.switch_frame(RegPage)).pack()
-        tk.Button(self, text="Login",
-                  command=lambda: master.switch_frame(FoodDetails)).pack()
+        
 
 
 class FoodDetails(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
         tk.Frame.configure(self, bg='blue')
-        # tk.Label(self, text="Page one", font=('Helvetica', 18, "bold")).pack(side="top", fill="x", pady=5)
         tk.Label(self, text="Welcome to homemade food shop", font=('', 13, 'bold')).grid(row=0, pady=5)
         tk.Label(self, text="Please select your choices", font=('', 9, 'bold')).grid(row=1, column=0, pady=5)
         tk.Label(self, text="Food items:-", font=('', 9, 'bold')).grid( row=2, column=0, pady=4)
@@ -111,22 +132,28 @@ class RegPage(tk.Frame):
         tk.Label(self, text='Registration', font=('times', 20, 'bold')).grid(row=0, column=1, padx=5, pady=5)
 
         tk.Label(self, text='Full Name').grid(row=2, column=1, padx=5, pady=5)
-        name_entry = tk.Entry(self, width=15).grid(row=2, column=3, padx=5, pady=5)
-
+        name_entry = tk.Entry(self, width=15)
+        name_entry.grid(row=2, column=2, padx=5, pady=5)
+        
         tk.Label(self, text='Address').grid(row=3, column=1, padx=5, pady=5)
-        addr_entry = tk.Entry(self, width=15).grid(row=3, column=3, padx=5, pady=5)
-
+        addr_entry = tk.Entry(self, width=15)
+        addr_entry.grid(row=3, column=2, padx=5, pady=5)
+        
         tk.Label(self, text='Ph no:').grid(row=4, column=1, padx=5, pady=5)
-        phno_entry = tk.Entry(self, width=15).grid(row=4, column=3, padx=5, pady=5)
-
+        phno_entry = tk.Entry(self, width=15)
+        phno_entry.grid(row=4, column=2, padx=5, pady=5)
+        
         tk.Label(self, text='Username').grid(row=5, column=1, padx=5, pady=5)
-        user_entry = tk.Entry(self, width=15).grid(row=5, column=3, padx=5, pady=5)
-
+        user_entry = tk.Entry(self, width=15)
+        user_entry.grid(row=5, column=2, padx=5, pady=5)
+        
         tk.Label(self, text='password').grid(row=6, column=1, padx=5, pady=5)
-        password_entry = tk.Entry(self, width=15).grid(row=6, column=3, padx=5, pady=5)
-
-        # tk.Label(self, text='Already have an account?', fg='red').grid(row=9, column=1, padx=1, pady=5)
-        tk.Label(self, text='Login', fg='blue', font=('times', 12, 'bold')).grid(row=9, column=2, padx=1, pady=5)
+        password_entry = tk.Entry(self, width=15)
+        password_entry.grid(row=6, column=2, padx=5, pady=5)
+        
+        tk.Label(self, text='Already have an account?', fg='red').grid(row=9, column=2, padx=1, pady=5)
+        tk.Button(self, text="Login",
+                  command=lambda:master.switch_frame(LoginPage)).grid(row=9, column=3, padx=5, pady=8)
 
         def clear():
             name_entry.delete(0, 'end')
@@ -135,11 +162,21 @@ class RegPage(tk.Frame):
             user_entry.delete(0, 'end')
             password_entry.delete(0, 'end')
             # grade_entry.configure(text="")
+        def reg():
+            if(name_entry.get()!="" and addr_entry.get()!="" and name_entry.get()!="" and phno_entry.get()!="" and user_entry.get()!="" and password_entry.get()!=""):
+                conn = lite.connect('user.db')
+                with conn:
+                    cur = conn.cursor()
+                    cur.execute("INSERT INTO user(Name,Addr,Phone,Username,Pass) VALUES(?,?,?,?,?)",(name_entry.get(),addr_entry.get(),phno_entry.get(),user_entry.get(),password_entry.get()))
+                    conn.commit()
+                msgbox.showinfo("SUCCESS","Data Successfully Inserted")
+                master.switch_frame(LoginPage)
+            else:
+                msgbox.showinfo("ERROR","Enter Data")
 
-        # tk.Button(self, text="Submit", width=8).grid(row=8, column=2, padx=5, pady=8)
         tk.Button(self, text="Reset", width=8, command=clear).grid(row=8, column=1, padx=5, pady=8)
-        tk.Button(self, text="Submit and go back",
-                  command=lambda: master.switch_frame(LoginPage)).grid(row=9, column=1, padx=5, pady=8)
+        tk.Button(self, text="Submit",
+                  command=lambda:reg()).grid(row=9, column=1, padx=5, pady=8)
 
 
 if __name__ == "__main__":
